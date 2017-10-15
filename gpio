@@ -1,0 +1,30 @@
+#!/usr/bin/python3.5
+import RPi.GPIO as GPIO
+import subprocess
+import os
+import time
+
+GPIO.setmode(GPIO.BOARD)
+shutdownPin = 10
+restartPin = 7
+rebootPin = 12
+exitPin = 8
+
+GPIO.setup(shutdownPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(restartPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(rebootPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(exitPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+while True:
+ if not GPIO.input(shutdownPin):
+  print("shutdown")
+  #subprocess.Popen(['sudo', 'shutdown', '-h','now'])
+ if not GPIO.input(restartPin):
+  print("restart")
+ if not GPIO.input(rebootPin):
+  print("reboot")
+  #subprocess.Popen(['sudo', 'reboot', 'now'])
+ if not GPIO.input(exitPin):
+  print("exit")
+  #sys.exit(-1)
+ time.sleep(.5)

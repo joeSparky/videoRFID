@@ -1,0 +1,105 @@
+#!/usr/bin/python3.5
+import subprocess, time, os, paths, getRfidEvent, sys
+from pathlib import Path
+import rfidReader
+import RPi.GPIO as GPIO
+
+shutdownPin = 10
+restartPin = 7
+rebootPin = 12
+exitPin = 8
+
+def stopVideo():
+    os.system("killall omxplayer")
+    os.system("killall omxplayer.bin")
+    return;
+
+def startVideo(path):
+    return subprocess.Popen(['omxplayer', '-o','hdmi','--no-keys','--blank', path])
+    #return subprocess.Popen(['omxplayer', '-o','hdmi','--no-keys', path])
+    #return subprocess.Popen(['omxplayer', '-o','hdmi','--no-keys','--loop', path])
+    #return subprocess.Popen(['omxplayer', '--win', '500,0,1040,480','-o','hdmi','--no-keys','--loop', path])
+
+def startAndWait(path, rfidSignature):
+    #print("in startAndWait, looking for rfid:"+rfidSignature, " starting video:"+path)
+    proc = startVideo(path)
+    rfid = rfidReader.rfidReader( eventPath.get())
+    keepGoing = True
+    while keepGoing:
+        if proc.poll() is not None:
+            proc = startVideo(path)
+            #print("restarting "+path)
+        tmp = rfid.get(rfidSignature)
+        #print ("got back from RFID:"+tmp)
+        if tmp == "right":
+            stopVideo()
+            return True
+        if tmp == "wrong":
+            stopVideo()
+            return False
+        if tmp != "not yet":
+            #print("got "+tmp)
+            sys.exit(-1)
+        if not GPIO.input(shutdownPin):
+            os.system("sudo shutdown -h now")
+        if not GPIO.input(exitPin):
+            GPIO.cleanup()
+            sys.exit(0)
+        if not GPIO.input(rebootPin):
+            os.system("sudo reboot")
+        time.sleep(.1)
+
+# play a video once, wait until it's done
+def startAndWaitNoRFID(path):
+    #print("in startAndWaitNoRFID, starting video:"+path)
+    proc = startVideo(path)
+    while proc.poll() is None:
+        time.sleep(.1)
+
+def blankScreen():
+    os.system("sudo chvt 9")
+
+stopVideo()
+eventPath = getRfidEvent.RfidEventPath()
+#print("eventPath:"+str(eventPath))
+# see if the event file exists
+eventFile = Path(eventPath.get())
+if not eventFile.exists():
+ print("could not find an RFID reader")
+ sys.exit(-1)
+myPaths = paths.Paths()
+# set up a blank scree so that this shell is not visible between video changes
+blankScreen()
+
+# read the paths of the video files and RFIDs
+intro, flowers, retries, remedial, ids, conclusion = myPaths.get()
+
+# setup hardware switches
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(shutdownPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(restartPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(rebootPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(exitPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+while True:
+ # don't care about which rfid for intro, as long as one entered
+ startAndWait(intro,"wontwork")
+
+ i=0
+ while i < len(flowers):
+       if startAndWait(flowers[i],ids[i].rstrip() ):
+           # next flower
+           i=i+1
+           continue
+       # play retry video
+       if startAndWait(retries[i], ids[i].rstrip()):
+           # next flower
+           i=i+1
+           continue
+       # play remedial
+       if startAndWait(remedial[i], ids[i].rstrip()):
+           # next flower
+           i=i+1
+           continue
+ # play the conclusion without waiting for rfid input
+ startAndWaitNoRFID(conclusion)
