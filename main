@@ -70,8 +70,25 @@ def blankScreen():
     os.system("sudo chvt 9")
 
 
-
+# stop the video player if it's still running from a previous invocation
 stopVideo()
+# clear the screen
+tmp = os.system('clear')
+
+# if the usb drive mount point does not exist
+if not os.path.isdir("/media/pi/POLLEN"):
+    os.system("sudo mkdir /media/pi/POLLEN")
+
+# if the usb drive is not mounted
+if not os.path.isdir("/media/pi/POLLEN/presentation"):
+    os.system("sudo mount -t vfat /dev/sda1 /media/pi/POLLEN")
+
+# if the mount failed
+if not os.path.isdir("/media/pi/POLLEN/presentation"):
+    print("could not mount usb drive")
+    sys.exit(-1)
+
+# get a path to the RFID reader event
 eventPath = getRfidEvent.RfidEventPath()
 #print("eventPath:"+str(eventPath))
 # see if the event file exists
@@ -80,6 +97,8 @@ if not eventFile.exists():
  print("could not find an RFID reader")
  sys.exit(-1)
 myPaths = paths.Paths()
+
+# open a blank screen
 blankScreen()
 
 # read the paths of the video files and RFIDs

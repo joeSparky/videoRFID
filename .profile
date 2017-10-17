@@ -21,15 +21,4 @@ if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
 
-clear
-# create the mount point if it doesn't exist
-if [ ! -d "/media/pi/POLLEN" ] ; then
-    sudo mkdir /media/pi/POLLEN
-fi
-sudo mount -t vfat /dev/sda1 /media/pi/POLLEN
-# if the mount was successful
-if [ -d "/media/pi/POLLEN/presentation" ] ; then
-    pollinator/main
-else
-    echo "could not find /media/pi/POLLEN/presentation directory"
-fi
+pollinator/main
