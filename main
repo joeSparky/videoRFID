@@ -1,5 +1,6 @@
 #!/usr/bin/python3.5
 import subprocess, time, os, paths, getRfidEvent, sys
+#import psutil, logging
 from pathlib import Path
 import rfidReader
 import RPi.GPIO as GPIO
@@ -8,6 +9,13 @@ shutdownPin = 10
 restartPin = 7
 rebootPin = 12
 exitPin = 8
+
+def restart_program():
+    """
+    restarts the current program
+    """
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
 
 def stopVideo():
     os.system("killall omxplayer")
@@ -47,6 +55,8 @@ def startAndWait(path, rfidSignature):
             sys.exit(0)
         if not GPIO.input(rebootPin):
             os.system("sudo reboot")
+        if not GPIO.input(restartPin):
+            restart_program()
         time.sleep(.1)
 
 # play a video once, wait until it's done
@@ -59,6 +69,8 @@ def startAndWaitNoRFID(path):
 def blankScreen():
     os.system("sudo chvt 9")
 
+
+
 stopVideo()
 eventPath = getRfidEvent.RfidEventPath()
 #print("eventPath:"+str(eventPath))
@@ -68,7 +80,6 @@ if not eventFile.exists():
  print("could not find an RFID reader")
  sys.exit(-1)
 myPaths = paths.Paths()
-# set up a blank scree so that this shell is not visible between video changes
 blankScreen()
 
 # read the paths of the video files and RFIDs
